@@ -19,10 +19,12 @@ with party as (
      '["natural_light","spacious"]')
   returning id
 )
+-- INSERT … SELECT types bare literals as text, so json/enum columns need
+-- explicit casts (a plain VALUES insert would coerce them automatically).
 insert into commute_anchors (party_id, label, location, mode, max_peak_minutes)
-select id, 'Koramangala office', '{"area":"Koramangala","lat":12.9352,"lng":77.6245}', 'two_wheeler', 35 from party
+select id, 'Koramangala office', '{"area":"Koramangala","lat":12.9352,"lng":77.6245}'::jsonb, 'two_wheeler'::commute_mode, 35 from party
 union all
-select id, 'Domlur office',      '{"area":"Domlur","lat":12.9609,"lng":77.6387}',      'two_wheeler', 35 from party;
+select id, 'Domlur office',      '{"area":"Domlur","lat":12.9609,"lng":77.6387}'::jsonb,      'two_wheeler'::commute_mode, 35 from party;
 
 insert into participants (id, party_id, display_name, role) values
   ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Saqlain',  'creator'),
