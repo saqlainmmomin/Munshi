@@ -1,0 +1,29 @@
+/* Minimal reset + tokens. Real design system comes with the review loop
+   (craft from the start — AGENTS.md §6, PRD §6). Kept tiny in the skeleton. */
+:root {
+  --bg: #fafaf8;
+  --fg: #1a1a1a;
+  --muted: #6b6b6b;
+  --accent: #2f6f4f;
+  --card: #ffffff;
+  --border: #e6e6e1;
+  --radius: 14px;
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14140f; --fg: #f2f2ec; --muted: #a0a096;
+    --accent: #6fbf8f; --card: #1e1e18; --border: #2c2c24;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); }
+main { max-width: 880px; margin: 0 auto; padding: 2.5rem 1.25rem; }
