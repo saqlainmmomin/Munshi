@@ -14,8 +14,9 @@ Read the minimum needed for the task; don't re-read long history unless the task
 1. **AGENTS.md** (this file) — rules & coordination.
 2. **[docs/PRD.md](docs/PRD.md)** — product truth (what & why). Non-relitigable decisions.
 3. **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — technical shape (services, seam, deploy).
-4. **[db/schema.sql](db/schema.sql)** — *the contract* (the shared data shape).
-5. **`tasks/handoffs/<task>.md`** — the specific task, if you were handed one.
+4. **[docs/ROADMAP.md](docs/ROADMAP.md)** — the ordered build sequence (phases, owners, milestones). *What to build next.*
+5. **[db/schema.sql](db/schema.sql)** — *the contract* (the shared data shape).
+6. **`tasks/handoffs/<task>.md`** — the specific task, if you were handed one.
 
 ---
 
