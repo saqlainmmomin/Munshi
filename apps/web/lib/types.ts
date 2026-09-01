@@ -44,3 +44,15 @@ export interface MatchState {
   space_assessment: string | null;
   uncertainties: string[];
 }
+
+export interface ListingPhoto {
+  url: string;
+  position: number;
+  light_score: number | null; // worker vision output (PRD §11)
+  space_score: number | null;
+}
+
+/** A listing with its photos, as the review loop consumes it. */
+export interface ReviewListing extends Listing {
+  photos: ListingPhoto[];
+}

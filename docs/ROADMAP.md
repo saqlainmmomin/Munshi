@@ -18,18 +18,18 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 Goal: a live, seeded database both services can talk to, plus the real-world accounts/keys.
 
 **Ops — do these first; they have lead time (PRD §13)**
-- [ ] **[S]** Create the Supabase project (DB + Auth + Storage).
+- [x] **[S]** Create the Supabase project (DB + Auth + Storage). *(Mumbai region; keys in per-service `.env`.)*
 - [ ] **[S]** Provision the **ordinary WhatsApp number** for Mira (SIM/eSIM — not Business API, PRD §9.2).
 - [ ] **[S]** Buy **X paid API** access (~$40–50 tier) → `X_BEARER_TOKEN` (PRD §8.2).
 - [ ] **[S]** Curate the **~20 Bengaluru broker X accounts** (data task, PRD §13 Q3) → `x_api.BROKER_ACCOUNTS`.
 - [ ] **[S]** Pick a **maps/routing provider** → `MAPS_API_KEY` (PRD §13 Q2); coarse distance-band is the fallback.
 
 **Database**
-- [ ] **[C]** Apply `db/schema.sql` + `db/seed.sql` to Supabase; confirm the seeded reference party + 2 listings exist.
+- [x] **[C]** Apply `db/schema.sql` + `db/seed.sql` to Supabase; confirm the seeded reference party + 2 listings exist. *(Verified via REST.)*
 - [ ] **[C]** Generate typed DB bindings (`supabase gen types typescript`) → replace hand-written `apps/web/lib/types.ts`.
-- [ ] **[C]** Wire `apps/web/lib/db.ts` to real env; add `getDailyBatch` / `getShortlist` query helpers.
+- [x] **[C]** Wire `apps/web/lib/db.ts` to real env; add query helpers. *(`getReviewListings(partyId)` added; `getShortlist`/`getPendingDrafts` still TODO.)*
 
-**Milestone 0:** `SELECT` from Supabase returns the seeded listing; `apps/web` reads it via `lib/db.ts`. Keys/accounts in hand.
+**Milestone 0:** ✅ `SELECT` from Supabase returns the seeded listing; `apps/web` reads it via `lib/db.ts`. Keys in hand (X API pending purchase).
 
 ---
 
@@ -45,7 +45,7 @@ Goal: the single most important integration checkpoint (AGENTS.md §4) — one r
 
 **Web**
 - [ ] **[C]** Search-party **create/join** + auth (Supabase Auth) — creator sets hard constraints + commute anchors (PRD §4, §5.1).
-- [ ] **[C]** Review page reads the participant's daily batch, ordered; `ReviewCard` renders photos, price, deposit, freshness, commute, why-selected, light/space, source (PRD §5.2).
+- [~] **[C]** Review page reads listings, `ReviewCard` renders price/deposit/bhk/area/source/light-space/missing-fields + restricted-attr facts (PRD §5.2). *(Read path + card done against seed; still TODO: per-participant daily-batch ordering, commute + why-selected, real photos.)*
 - [ ] **[C]** **Pass** (with multi-select reason chips) and **add-to-shortlist** actions writing `match_states` (PRD §5.2, §11).
 
 **Milestone 1:** create a party → the review loop shows a real listing the worker fetched from X → pass/shortlist persists. *End-to-end proof the two services meet.*
@@ -119,7 +119,7 @@ Goal: ready to put in front of the waitlist.
 
 ## Status
 
-- **Phase 0:** the scaffold (repo, schema, both skeletons) is merged (PR #1). Remaining Phase 0 = Supabase + keys + wiring.
-- Everything Phase 1+ is `[ ]`.
+- **Phase 0:** ✅ essentially done — scaffold merged (PR #1), Supabase live + seeded, keys wired, `lib/db.ts` reading real rows. Remaining: generated DB types, X API key (pending purchase), Storage bucket (Phase 2).
+- **Phase 1:** 🚧 read half proven — the review page renders real DB listings end-to-end (build + runtime verified). Remaining: the write half (Codex X poller), party create/join + auth, pass/shortlist actions, per-participant ordering.
 
 *Update the checkboxes as work lands; this file is the living source of build sequence.*
