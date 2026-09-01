@@ -1,0 +1,26 @@
+# ── node / next (apps/web) ──────────────────────────────────────────────
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# ── python (services/worker) ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# ── secrets / env ───────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── os / editor ─────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
