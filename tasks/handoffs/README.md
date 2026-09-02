@@ -19,3 +19,4 @@ Self-contained kickoff files for handing work **across the Claude↔Codex bounda
 ## Existing handoffs
 
 - `2026-08-31-munshi-prd.md` — write the pilot PRD (complete; see its Results).
+- `2026-09-02-codex-x-poller.md` — Codex: implement the X source poller + normalization + upsert (open).
