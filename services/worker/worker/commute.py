@@ -8,9 +8,9 @@ from __future__ import annotations
 
 
 def peak_minutes(
-    origin: dict[str, float],       # listing location {lat, lng}
-    anchor: dict[str, float],       # commute anchor {lat, lng}
-    mode: str,                      # commute_mode enum value
+    origin: dict[str, float],  # listing location {lat, lng}
+    anchor: dict[str, float],  # commute anchor {lat, lng}
+    mode: str,  # commute_mode enum value
 ) -> int | None:
     """Weekday-peak travel time in minutes, or None if unknown.
 
@@ -18,4 +18,6 @@ def peak_minutes(
     distance → coarse band. Import any HTTP client lazily.
     """
     _ = (origin, anchor, mode)
-    raise NotImplementedError("TODO: implement commute (PRD §5.1). Fallback = distance band.")
+    raise NotImplementedError(
+        "TODO: implement commute (PRD §5.1). Fallback = distance band."
+    )

@@ -38,4 +38,10 @@ def test_missing_deposit_is_flagged():
 def test_normalize_populates_missing_fields_for_empty_item():
     listing = normalize(RawItem(source="nobroker", source_ref="nb:3", payload={}))
     # An empty item is missing every required fact.
-    assert set(listing.missing_fields) == {"rent", "deposit", "bhk", "furnishing", "location"}
+    assert set(listing.missing_fields) == {
+        "rent",
+        "deposit",
+        "bhk",
+        "furnishing",
+        "location",
+    }

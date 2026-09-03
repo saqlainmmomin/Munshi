@@ -199,3 +199,27 @@ Claude should append a `## Results` section with the approved/revised schema dec
 **Approval/data authorization:** operator approval in `intake_submissions` is authorization for the *submission* to be sourced into the pipeline — it is not itself authorization for any specific normalized fact the worker later derives. The worker extracting `claims`/`amenities`/etc. from approved raw text doesn't require a second approval step (approval already covers "use this submission"), but restricted-tenancy attributes remain informational-only regardless of approval (existing constraint, reaffirmed) and poster contact data flows only through `poster_contact` — never duplicated into `raw` or `claims` where it could leak into a rendered/shared surface un-redacted.
 
 Codex may proceed with worker implementation against this contract.
+
+### Worker implementation (Codex, 2026-09-03)
+
+Implemented U1–U5 on the `feat/worker` branch. The approved schema was used as-is; no schema change was requested.
+
+- **Approval invariant verified first:** the approved integration commit `a31ef78` leaves `reviewIntake()` with only an `intake_submissions.update(...)` for `status`, `reviewed_at`, and `reviewer_notes`. It contains no `listings` or `listing_photos` write, and the former `createListingFromIntake()` helper is absent. No app files were changed during worker implementation.
+- **U1:** `sources/intake.fetch()` reads only `status = 'approved'`, preserves source/raw/structured/photo data, orders photos, and emits the stable `intake:<submission_id>` reference. Database errors propagate.
+- **U2:** `models.py` now matches the approved listing/photo fields. `normalize.py` provides the typed `extract_facts()` Anthropic tool-call seam, structured-field precedence, INR/BHK/date/furnishing/location validation, ambiguity/claims/maintenance/brokerage handling, contact isolation, extraction provenance, and `finalize()` on every path. Submitted text is delimited as untrusted data in the prompt; restricted-tenancy attributes are informational only.
+- **U3:** `db.upsert_listing()` writes every approved listing field with `ON CONFLICT (source, source_ref)`, preserves `first_seen_at`, refreshes `last_seen_at`, and replaces the photo set in the same transaction so repeats cannot duplicate photos.
+- **U4:** `vision.assess_photo()` has an injectable analyzer seam, lazy Anthropic/image dependencies, bounded score clamping, malformed-output handling, and safe provider/image failure behavior. It never rejects a listing.
+- **U5:** `schedule.run_once()` wires approved intake through normalization, dedupe, best-effort photo enrichment, and the listing/photo write. A malformed item or failed photo assessment is isolated from the rest of the batch.
+
+### Verification and smoke evidence
+
+- `uv run --extra dev pytest -q` → **20 passed**.
+- `uv run --extra dev mypy worker tests` → **Success: no issues found in 20 source files**.
+- `uv run --extra dev ruff check worker tests` → **All checks passed**.
+- `uv run --extra dev black --check worker tests` → **20 files unchanged**.
+- `git diff --check` → clean.
+- Safe fixture smoke: `tests/test_pipeline_smoke.py` exercises the real approved-intake reader, normalizer, scheduler, photo enrichment, and captured DB write. Two runs produced one write each with the same `intake:submission-smoke` identity; rent ₹43,000, deposit ₹2,00,000, 2BHK, semi-furnished, amenities, poster claim, ambiguous `July or August` availability, no `available_from` missing flag, and bounded light/space scores `0.90`/`0.72`. Inclusive family/bachelor wording produced no restricted attribute. The fixture smoke passed as part of the 20-test run.
+
+Review hardening after the initial smoke: BHK values are bounded before the `smallint` write; contact keys are recursively removed from the shared raw capture; each source fetch is isolated so one provider outage does not skip approved intake; negated amenities are excluded; and phone/email/contact claims are not retained. Regression coverage now reports 24 passing tests.
+
+Live Supabase mutation was intentionally not used for verification; the safe fixture proves the worker seam without writing real submissions. Production runs still require `DATABASE_URL` and, for Anthropic extraction/vision, `ANTHROPIC_API_KEY`. X and NoBroker remain deferred/out-of-scope for this intake milestone. Cross-source dedupe remains the explicitly deferred follow-up from the approved plan.
