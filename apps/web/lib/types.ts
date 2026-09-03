@@ -20,7 +20,16 @@ export interface Listing {
   furnishing: Furnishing | null;
   location: { area?: string; lat?: number; lng?: number } | null;
   available_from: string | null;
+  /** Source wording when available_from can't be an exact date, e.g. "July or August". */
+  availability_text: string | null;
   description: string | null;
+  amenities: string[];
+  /** null = not mentioned. {applicable: true, amount: null} = mentioned, amount unknown. */
+  maintenance_details: { applicable: boolean | null; amount: number | null } | null;
+  brokerage_applicable: boolean | null;
+  /** Unverified poster claims, e.g. "1 km from metro". Never render as a verified fact. */
+  claims: string[];
+  extraction_meta: Record<string, { confidence: number; source: "structured" | "text" | "inferred" }>;
   missing_fields: string[];
   /** Informational only — NEVER a filter or ranking input (PRD §10.1). */
   restricted_attrs: string[];
@@ -77,6 +86,7 @@ export interface ListingPhoto {
   position: number;
   light_score: number | null; // worker vision output (PRD §11)
   space_score: number | null;
+  assessment: string | null; // explanation for the scores above
 }
 
 /** A listing with its photos, as the review loop consumes it. */
