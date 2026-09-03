@@ -17,9 +17,9 @@ They meet at **one Postgres database**. The worker writes listings; the app read
   SOURCES                    services/worker (Python · Codex)          shared DB              apps/web (TS · Claude)         USER
  ┌─────────┐   scrape/poll  ┌──────────────────────────────────┐   ┌────────────┐   read    ┌──────────────────────────┐
  │ NoBroker│ ─────────────▶ │ sources → normalize → dedupe →   │──▶│  Postgres  │◀───────── │ review loop (Luma)       │◀── daily batch
- │ X API   │ ─────────────▶ │ vision (light/space) → commute → │   │ (Supabase) │           │ shortlist + party feed   │◀── shortlist/qualify
- │ intake  │ ─────────────▶ │ WRITE listings + enrichment      │   │  listings  │           │ Mira drafts → operator   │──▶ approve & send
- │ (FB/self)│               └──────────────────────────────────┘   │  + party   │           │ landing + waitlist       │
+ │ intake  │ ─────────────▶ │ vision (light/space) → commute → │   │ (Supabase) │           │ shortlist + party feed   │◀── shortlist/qualify
+ │(FB/X/WA)│ ─────────────▶ │ WRITE listings + enrichment      │   │  listings  │           │ Mira drafts → operator   │──▶ approve & send
+ │ broker  │               └──────────────────────────────────┘   │  + party   │           │ landing + waitlist       │
  └─────────┘                        (runs a few times/day)         └────────────┘           └──────────────────────────┘
                                                                           ▲                              │
                                                                           └──────── app writes party/match/shortlist/threads
@@ -60,8 +60,8 @@ munshi/
 └── services/worker/                      # ═══ Python ═══ (Codex)
     ├── sources/
     │   ├── nobroker.py                   # Playwright scraper, corridor   (PRD §8.1)
-    │   ├── x_api.py                      # official paid API poller       (PRD §8.2)
-    │   └── intake.py                     # self-submission + manual FB    (PRD §8.3–8.4)
+    │   ├── x_api.py                      # DEFERRED — stub only           (PRD §8.2)
+    │   └── intake.py                     # manual intake: FB, X, WA, brokers (PRD §8.3–8.4)
     ├── normalize.py                      # → canonical Listing shape
     ├── dedupe.py                         # cross-channel dedupe           (PRD §8.5)
     ├── vision.py                         # light/spaciousness assessment  (PRD §7, §11)
@@ -100,7 +100,7 @@ Keeping the worker off Vercel is deliberate: serverless timeouts and cron limits
 
 ## 5. External dependencies
 
-- **X API** — official paid tier, ~$40–50 for the pilot (PRD §8.2). Never scraped.
+- **X API** — deferred for the pilot (Basic tier is $200/month, exceeds budget; PRD §8.2). X listings are manually pasted into intake.
 - **Maps/routing API** — commute-to-anchor computation (worker `commute.py`). Provider TBD (PRD §13 open question #2); coarse distance-band fallback acceptable since commute ranks, never excludes.
 - **Anthropic API** — Mira drafting (web, TS SDK) and photo light/space assessment (worker, Python SDK).
 - **WhatsApp** — an **ordinary number**, not the Business API (PRD §9.2). Sending is operator-driven (copy/deep-link); no Business-API integration is built in the pilot.

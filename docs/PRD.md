@@ -147,7 +147,7 @@ Enough to build against; not a schema spec. All of this is subject to the retent
 
 - **SearchParty** — id, creator, members[], status (active / closed), created_at. Holds the hard constraints (budget target + ceiling, locations/corridor, move date, BHK/occupancy, furnishing, commute anchors + max peak minutes + mode) and soft preferences (free text + tags).
 - **Participant** — id, party_id, display name, individual **TasteProfile** (learned soft-preference weights + reason-chip history), individual review state.
-- **Listing** — id, source channel (nobroker / x / facebook-manual / self-submitted), source ref/url, raw captured fields, normalized fields (price, deposit, BHK, furnishing, location, availability), photos[], freshness/seen_at, **completeness flags** (which required facts are missing), **restricted-tenancy attributes** (informational only — see §10.1), poster contact (if known).
+- **Listing** — id, source channel (nobroker / x / facebook-manual / self-submitted / whatsapp-manual), source ref/url, raw captured fields, normalized fields (price, deposit, BHK, furnishing, location, availability), photos[], freshness/seen_at, **completeness flags** (which required facts are missing), **restricted-tenancy attributes** (informational only — see §10.1), poster contact (if known).
 - **MatchState** — per (participant, listing): ranked / passed / shortlisted; pass reasons[]; predicted-fit score; light/spaciousness assessment; uncertainties.
 - **Shortlist** — party-level set of listings, with activity log and group reactions.
 - **QualificationThread** — links a shortlisted (or auto-verify) listing to the outreach conversation: drafted messages, approval state, sent messages, replies, verified/changed facts, result summary.
@@ -167,12 +167,11 @@ Each channel carries a **deliberately different risk posture**. These were settl
 - **Risk posture:** knowingly accepted. This carries an **unfair-competition / competitor-scraping** angle (beyond ordinary ToS exposure). **Saqlain is aware and has accepted this for pilot scale.** No public messaging will name NoBroker or mention scraping (§10.3).
 - **Build:** scheduled scraper for the corridor; normalize into `Listing`; dedupe against other channels; flag incomplete listings for the auto-verify path.
 
-### 8.2 X (Twitter) — official paid API
+### 8.2 X (Twitter) — deferred to post-pilot
 
-- **Mechanism:** **official paid X API** — *not* scraping. Poll ~20 broker accounts a few times a day.
-- **Cost:** estimated **~$40–50 total** for the pilot at expected volume.
-- **Why the API and not scraping:** to remove X entirely from ToS/ban risk. Both Meta and X are actively litigating scrapers, and **Saqlain is launching this pilot publicly on Twitter under his own name** — an account-level ban would be self-inflicted damage to the launch channel.
-- **Build:** API integration pulling those accounts' recent posts; extract listing-like posts; normalize into `Listing`.
+- **Original plan:** official paid X API (~$40–50) polling ~20 broker accounts.
+- **Decision (2026-09-02):** the cheapest paid X API tier (Basic) is **$200/month**, which doesn't fit the pilot budget. X sourcing is **deferred**. Any promising X listings Saqlain spots while browsing are pasted into the manual intake form (§8.4), same as Facebook.
+- **No code is built for this channel in the pilot.**
 
 ### 8.3 Facebook groups — manual only
 
@@ -189,7 +188,7 @@ Each channel carries a **deliberately different risk posture**. These were settl
 
 ### 8.5 Cross-channel handling
 
-- All four inputs normalize into the **same `Listing` model** and the **same daily-batch pipeline**. Dedupe across channels (same flat posted in multiple places). Incomplete listings from any channel are eligible for the auto-verify exception (§5.4).
+- All inputs normalize into the **same `Listing` model** and the **same daily-batch pipeline**. For the pilot, active channels are **NoBroker (automated, if stable)** and **manual intake (Facebook, X, WhatsApp groups, broker forwards)**. Dedupe across channels (same flat posted in multiple places). Incomplete listings from any channel are eligible for the auto-verify exception (§5.4).
 
 ---
 
@@ -267,7 +266,7 @@ Each channel carries a **deliberately different risk posture**. These were settl
 ### 12.1 What ships in the pilot
 
 1. **Web app** (responsive): create/join search party; daily review loop (photo-led cards, keyboard controls, multi-select pass reasons); shared shortlist + party activity; qualify action; Mira updates.
-2. **Sourcing pipeline:** NoBroker scraper (corridor), X API poller (~20 accounts), self-submission form + manual-entry path (absorbs Facebook manual finds), normalization + dedupe into one `Listing` model, completeness flagging.
+2. **Sourcing pipeline:** NoBroker scraper (corridor, timeboxed), manual intake form (absorbs Facebook, X, WhatsApp groups, broker forwards — all manual for the pilot), normalization + dedupe into one `Listing` model, completeness flagging.
 3. **Ranking:** hard-constraint pool + per-participant soft-preference ordering; photo-based light/spaciousness assessment that ranks + explains (never auto-discards); computed commute to anchors.
 4. **Mira outreach:** draft queue with one-tap approve/edit/send via ordinary WhatsApp; AI-identity disclosure baked into first-message templates; auto-verify path for incomplete listings; reply logging into qualification threads.
 5. **Guardrails:** restricted-attributes shown as facts (never filters); default-delete on search close; capability-only public copy.
@@ -277,7 +276,7 @@ Each channel carries a **deliberately different risk posture**. These were settl
 
 **Achievable in the window:**
 - The **review-loop web app** is the largest but most tractable piece (the Luma prototype already proved the interaction).
-- **X API** integration is small and well-bounded (~$40–50, a handful of accounts).
+- **X API** is deferred (Basic tier is $200/month, exceeds pilot budget); X listings are manually pasted into intake.
 - **Self-submission form + manual queue** is trivial and doubles as the Facebook path.
 - **Draft-and-send outreach** over an ordinary WhatsApp number is deliberately low-tech (copy/deep-link), avoiding any Business-API build.
 - **Guardrails** (facts-not-filters, default-delete, copy discipline) are policy + small code, not heavy engineering.
@@ -290,7 +289,7 @@ Each channel carries a **deliberately different risk posture**. These were settl
 
 ### 12.3 Suggested sequencing (functionality-first, craft-throughout)
 
-- **Week 1:** search-party creation + data model + review-loop shell with real cards from **X API + self-submission** (guaranteed-safe sources first). Design system established up front.
+- **Week 1:** search-party creation + data model + review-loop shell with real cards from **manual intake** (all sources manual for the pilot). Design system established up front. Self-submission / intake form live.
 - **Week 2:** shortlist + qualify + Mira draft queue + WhatsApp send flow + AI-disclosure templates + auto-verify path.
 - **Week 3:** NoBroker scraper (timeboxed; fall back to manual entry if fragile), dedupe/normalization hardening, guardrails (facts-not-filters, default-delete), commute + photo ranking.
 - **Week 4:** landing page + waitlist, polish pass (the pre-exposure design pass), end-to-end dry run with the real reference search, launch.
@@ -303,7 +302,7 @@ None of these block the start of the build; each is flagged rather than silently
 
 1. **Reply capture fidelity.** §9.5 assumes manual logging of WhatsApp replies into `QualificationThread` is acceptable at pilot volume. If reply volume is higher than expected, a lightweight capture mechanism may be needed mid-pilot. *Recommendation: start manual, revisit only if it becomes a bottleneck.*
 2. **Commute computation source.** The plan requires computed weekday-peak commute to office anchors (≤~35 min in the reference profile). The specific routing/traffic data source (e.g. a maps API and its cost/quota) is not pinned down. *Recommendation: pick a single maps provider in Week 1; if cost/quota is a concern at pilot scale, a coarse distance-band estimate is an acceptable fallback since commute ranks rather than excludes.*
-3. **X account list.** "~20 broker accounts" is an estimate; the actual curated list of Bengaluru-corridor broker/listing accounts needs to be assembled before the X poller is useful. *Recommendation: Saqlain curates this list in Week 1 — it's a data task, not a build task.*
+3. ~~**X account list.**~~ Deferred with X API (2026-09-02). Saqlain manually pastes promising X listings into the intake form.
 4. **"Search closed" trigger for default-delete.** §10.2 deletes on flat-found or party-disband, but the pilot has no explicit "we found a place" event modeled beyond visit requests. *Recommendation: a manual "close search" action (creator-triggered, or Saqlain-triggered) is sufficient for the pilot; full lifecycle automation is post-pilot.*
 
 ---

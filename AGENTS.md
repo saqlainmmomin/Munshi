@@ -76,7 +76,7 @@ If you find yourself needing to edit the other agent's territory, **stop and wri
 
 **Worker — `services/worker/` (Python)**
 - Type hints + `mypy`; `ruff` + `black`; `pytest` for every source module.
-- Playwright for scraping. **X: official paid API only — never scrape X.** **Facebook: never automate.** (PRD §8.)
+- Playwright for scraping. **X API: deferred for the pilot** (Basic tier exceeds budget; X listings go through manual intake). **Facebook: never automate.** (PRD §8.)
 - Anthropic **Python** SDK for vision analysis.
 
 ---

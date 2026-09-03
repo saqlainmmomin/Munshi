@@ -20,8 +20,8 @@ Goal: a live, seeded database both services can talk to, plus the real-world acc
 **Ops — do these first; they have lead time (PRD §13)**
 - [x] **[S]** Create the Supabase project (DB + Auth + Storage). *(Mumbai region; keys in per-service `.env`.)*
 - [ ] **[S]** Provision the **ordinary WhatsApp number** for Mira (SIM/eSIM — not Business API, PRD §9.2).
-- [ ] **[S]** Buy **X paid API** access (~$40–50 tier) → `X_BEARER_TOKEN` (PRD §8.2).
-- [ ] **[S]** Curate the **~20 Bengaluru broker X accounts** (data task, PRD §13 Q3) → `x_api.BROKER_ACCOUNTS`.
+- [x] ~~**[S]** Buy X paid API access~~ — **deferred** (Basic tier is $200/month, exceeds pilot budget; 2026-09-02). X listings are manually pasted into intake.
+- [x] ~~**[S]** Curate ~20 Bengaluru broker X accounts~~ — deferred with X API.
 - [ ] **[S]** Pick a **maps/routing provider** → `MAPS_API_KEY` (PRD §13 Q2); coarse distance-band is the fallback.
 
 **Database**
@@ -35,20 +35,20 @@ Goal: a live, seeded database both services can talk to, plus the real-world acc
 
 ## Phase 1 — Vertical slice: *"the app renders a listing the worker wrote"* · Week 1→2
 
-Goal: the single most important integration checkpoint (AGENTS.md §4) — one real, X-sourced listing appears in the review loop.
+Goal: the single most important integration checkpoint (AGENTS.md §4) — one real, manually-submitted listing appears in the review loop.
 
 **Worker**
-- [ ] **[X]** Implement `sources/x_api.fetch()` — poll tracked accounts via the official API → `RawItem`s.
+- [ ] **[X]** Implement `sources/intake.fetch()` — read approved intake submissions → `RawItem`s.
 - [ ] **[X]** Implement per-source normalization → `Listing` (rent/deposit/bhk/furnishing/location), calling `finalize()`.
 - [ ] **[X]** Implement `db.upsert_listing()` (psycopg upsert on `source, source_ref`).
-- [ ] **[X]** `pytest` for the X mapper; run `python -m worker.schedule` once and confirm rows land.
+- [ ] **[X]** `pytest` for the intake mapper; run `python -m worker.schedule` once and confirm rows land.
 
 **Web**
 - [ ] **[C]** Search-party **create/join** + auth (Supabase Auth) — creator sets hard constraints + commute anchors (PRD §4, §5.1).
 - [~] **[C]** Review page reads listings, `ReviewCard` renders price/deposit/bhk/area/source/light-space/missing-fields + restricted-attr facts (PRD §5.2). *(Read path + card done against seed; still TODO: per-participant daily-batch ordering, commute + why-selected, real photos.)*
 - [ ] **[C]** **Pass** (with multi-select reason chips) and **add-to-shortlist** actions writing `match_states` (PRD §5.2, §11).
 
-**Milestone 1:** create a party → the review loop shows a real listing the worker fetched from X → pass/shortlist persists. *End-to-end proof the two services meet.*
+**Milestone 1:** create a party → the review loop shows a real listing submitted through intake → pass/shortlist persists. *End-to-end proof the two services meet.*
 
 ---
 
@@ -56,15 +56,15 @@ Goal: the single most important integration checkpoint (AGENTS.md §4) — one r
 
 Goal: a multi-source pool with dedupe and enrichment.
 
-- [ ] **[C]** Public **self-submission form** → `intake` store (PRD §8.4); marketed to outgoing tenants.
+- [ ] **[C]** Public **intake form** → `intake` store (PRD §8.4); accepts FB, X, WhatsApp, broker listings + photos. **Pulled to Phase 1** — now the primary sourcing path for the pilot.
 - [ ] **[C]** Operator **intake sanity-check** queue → approve submissions into the pipeline (PRD §8.4).
-- [ ] **[X]** `sources/intake.fetch()` — approved submissions + manually-pasted Facebook finds → `RawItem`s (PRD §8.3–8.4).
+- [ ] **[X]** `sources/intake.fetch()` — approved intake submissions (all manual sources) → `RawItem`s (PRD §8.3–8.4).
 - [ ] **[X]** `dedupe.find_duplicate()` — cross-channel, set `duplicate_of` (PRD §8.5).
 - [ ] **[X]** `vision.assess_photo()` — light/space scores + explanation → `listing_photos` (PRD §11; never auto-discard).
 - [ ] **[X]** `commute.peak_minutes()` → `listing_commutes` per anchor (PRD §5.1; distance-band fallback).
 - [ ] **[X]** `sources/nobroker.fetch()` — Playwright corridor scraper, **timeboxed**; return `[]` on failure so it never blocks the pipeline. *Descope to manual paste-into-intake if fragile (PRD §12.2).*
 
-**Milestone 2:** the pool is fed by X + intake (+ NoBroker if it held), deduped, with photo scores and commute times attached.
+**Milestone 2:** the pool is fed by intake (+ NoBroker if it held), deduped, with photo scores and commute times attached.
 
 ---
 
@@ -119,7 +119,7 @@ Goal: ready to put in front of the waitlist.
 
 ## Status
 
-- **Phase 0:** ✅ essentially done — scaffold merged (PR #1), Supabase live + seeded, keys wired, `lib/db.ts` reading real rows. Remaining: generated DB types, X API key (pending purchase), Storage bucket (Phase 2).
-- **Phase 1:** 🚧 read half proven — the review page renders real DB listings end-to-end (build + runtime verified). Remaining: the write half (Codex X poller), party create/join + auth, pass/shortlist actions, per-participant ordering.
+- **Phase 0:** ✅ essentially done — scaffold merged (PR #1), Supabase live + seeded, keys wired, `lib/db.ts` reading real rows. Remaining: generated DB types, Storage bucket (Phase 2). X API deferred (2026-09-02).
+- **Phase 1:** 🚧 read half proven — the review page renders real DB listings end-to-end (build + runtime verified). Remaining: the write half (Codex intake reader), party create/join + auth, pass/shortlist actions, per-participant ordering. Intake form (Claude) is now the critical-path item.
 
 *Update the checkboxes as work lands; this file is the living source of build sequence.*
