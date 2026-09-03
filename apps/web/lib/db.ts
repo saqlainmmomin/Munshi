@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { ReviewListing, IntakeSubmission, SearchParty, Participant } from "@/lib/types";
+import { parseIntakeFacts } from "@/lib/intake/parse";
 
 // Shared Postgres via Supabase — the app's read side of the contract
 // (AGENTS.md §3). The worker writes listings; the app reads them here.
@@ -115,9 +116,7 @@ export async function reviewIntake(
 async function createListingFromIntake(submission: IntakeSubmission) {
   const supa = db();
   const structured = submission.structured ?? {};
-  const rent = typeof structured.rent === "number" ? structured.rent : null;
-  const bhk = typeof structured.bhk === "number" ? structured.bhk : null;
-  const area = typeof structured.area === "string" ? structured.area : null;
+  const { rent, bhk, area } = parseIntakeFacts(submission.raw_text, structured);
   const title =
     (typeof structured.title === "string" && structured.title) ||
     submission.raw_text.split("\n")[0].slice(0, 140);
