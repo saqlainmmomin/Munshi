@@ -20,7 +20,7 @@ create type party_status      as enum ('active', 'closed');
 create type party_role        as enum ('creator', 'participant');
 create type commute_mode      as enum ('two_wheeler', 'auto', 'car', 'transit', 'walk');
 create type furnishing        as enum ('unfurnished', 'semi', 'furnished', 'any');
-create type source_channel    as enum ('nobroker', 'x', 'facebook_manual', 'self_submitted');
+create type source_channel    as enum ('nobroker', 'x', 'facebook_manual', 'whatsapp_manual', 'self_submitted');
 create type match_status      as enum ('ranked', 'passed', 'shortlisted');
 create type thread_purpose    as enum ('qualify', 'auto_verify');           -- PRD §5.3 / §5.4
 create type thread_status     as enum ('drafting', 'awaiting_approval', 'sent', 'replied', 'closed');
@@ -73,6 +73,37 @@ create table participants (
     created_at    timestamptz not null default now()
 );
 create index on participants (party_id);
+
+-- ============================================================================
+-- INTAKE SUBMISSIONS  (PRD §8.3–8.4) — app-owned
+-- Manual submissions from all sources (FB, X, WhatsApp, brokers, self-submit).
+-- Saqlain approves in the operator console; the worker reads approved rows.
+-- ============================================================================
+create type intake_status as enum ('pending', 'approved', 'rejected');
+
+create table intake_submissions (
+    id               uuid primary key default gen_random_uuid(),
+    source           source_channel not null,
+    raw_text         text not null,                        -- pasted message / listing text
+    structured       jsonb not null default '{}',          -- optional: {rent, bhk, area, ...}
+    source_url       text,                                 -- original post URL if available
+    poster_contact   text,                                 -- phone / name if known
+    status           intake_status not null default 'pending',
+    submitted_at     timestamptz not null default now(),
+    reviewed_at      timestamptz,
+    reviewer_notes   text
+);
+create index on intake_submissions (status, submitted_at);
+
+-- photos attached to a submission (before they become listing_photos)
+create table intake_photos (
+    id              uuid primary key default gen_random_uuid(),
+    submission_id   uuid not null references intake_submissions(id) on delete cascade,
+    storage_path    text not null,                          -- Supabase Storage path
+    url             text not null,                          -- public URL
+    position        smallint not null default 0
+);
+create index on intake_photos (submission_id);
 
 -- ============================================================================
 -- LISTINGS  (PRD §7, §8) — WRITTEN BY THE WORKER

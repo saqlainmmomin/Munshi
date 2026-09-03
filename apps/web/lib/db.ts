@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { ReviewListing } from "@/lib/types";
+import type { ReviewListing, IntakeSubmission } from "@/lib/types";
 
 // Shared Postgres via Supabase — the app's read side of the contract
 // (AGENTS.md §3). The worker writes listings; the app reads them here.
@@ -62,6 +62,68 @@ export async function getReviewListings(partyId: string): Promise<ReviewListing[
     const photos = (listing_photos ?? []).slice().sort((a, b) => a.position - b.position);
     return { ...listing, photos };
   });
+}
+
+/** Pending intake submissions for the operator to review. */
+export async function getPendingIntake(): Promise<IntakeSubmission[]> {
+  const { data, error } = await db()
+    .from("intake_submissions")
+    .select("*, intake_photos ( id, storage_path, url, position )")
+    .eq("status", "pending")
+    .order("submitted_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as unknown as IntakeSubmission[];
+}
+
+/** Approve or reject an intake submission. */
+export async function reviewIntake(
+  id: string,
+  decision: "approved" | "rejected",
+  notes?: string,
+) {
+  const { error } = await db()
+    .from("intake_submissions")
+    .update({
+      status: decision,
+      reviewed_at: new Date().toISOString(),
+      reviewer_notes: notes ?? null,
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Insert a new intake submission. Returns the submission id. */
+export async function createIntakeSubmission(fields: {
+  source: string;
+  raw_text: string;
+  structured?: Record<string, unknown>;
+  source_url?: string;
+  poster_contact?: string;
+}): Promise<string> {
+  const { data, error } = await db()
+    .from("intake_submissions")
+    .insert({
+      source: fields.source,
+      raw_text: fields.raw_text,
+      structured: fields.structured ?? {},
+      source_url: fields.source_url ?? null,
+      poster_contact: fields.poster_contact ?? null,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+/** Attach a photo record to an intake submission. */
+export async function addIntakePhoto(fields: {
+  submission_id: string;
+  storage_path: string;
+  url: string;
+  position: number;
+}) {
+  const { error } = await db().from("intake_photos").insert(fields);
+  if (error) throw error;
 }
 
 // TODO: more helpers as pages need them —
