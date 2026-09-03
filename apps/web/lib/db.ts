@@ -1,6 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { ReviewListing, IntakeSubmission, SearchParty, Participant } from "@/lib/types";
-import { parseIntakeFacts } from "@/lib/intake/parse";
 
 // Shared Postgres via Supabase — the app's read side of the contract
 // (AGENTS.md §3). The worker writes listings; the app reads them here.
@@ -21,8 +20,9 @@ export function db(): SupabaseClient {
 
 const LISTING_COLUMNS =
   "id, source, source_ref, title, rent, deposit, bhk, furnishing, location, " +
-  "available_from, description, missing_fields, restricted_attrs, last_seen_at, " +
-  "listing_photos ( url, position, light_score, space_score )";
+  "available_from, availability_text, description, amenities, maintenance_details, " +
+  "brokerage_applicable, claims, extraction_meta, missing_fields, restricted_attrs, last_seen_at, " +
+  "listing_photos ( url, position, light_score, space_score, assessment )";
 
 /**
  * The party's review pool: listings that satisfy the party's hard constraints,
@@ -77,9 +77,14 @@ export async function getPendingIntake(): Promise<IntakeSubmission[]> {
 }
 
 /**
- * Approve or reject an intake submission. Approving creates the `Listing`
- * the submission feeds into the shared pipeline (PRD §8.4): "public form →
- * submissions queue → Saqlain approves → Listing in pipeline."
+ * Approve or reject an intake submission. This only records the operator's
+ * decision on `intake_submissions` (PRD §8.4: "public form → submissions
+ * queue → Saqlain approves"). Turning an approved submission into a
+ * canonical `listings` row is the worker's job, not the app's — it reads
+ * approved rows and upserts on `source_ref = "intake:<submission_id>"`
+ * (tasks/handoffs/2026-09-03-listing-intelligence.md). The app must never
+ * write `listings`/`listing_photos` itself, or the worker's upsert would
+ * either collide with or duplicate an app-created row.
  */
 export async function reviewIntake(
   id: string,
@@ -87,20 +92,6 @@ export async function reviewIntake(
   notes?: string,
 ) {
   const supa = db();
-
-  if (decision === "approved") {
-    const { data: submission, error: fetchErr } = await supa
-      .from("intake_submissions")
-      .select("*, intake_photos ( url, position )")
-      .eq("id", id)
-      .single();
-    if (fetchErr) throw fetchErr;
-
-    await createListingFromIntake(
-      submission as unknown as IntakeSubmission,
-    );
-  }
-
   const { error } = await supa
     .from("intake_submissions")
     .update({
@@ -110,54 +101,6 @@ export async function reviewIntake(
     })
     .eq("id", id);
   if (error) throw error;
-}
-
-/** Turn an approved intake submission into a `listings` row + its photos. */
-async function createListingFromIntake(submission: IntakeSubmission) {
-  const supa = db();
-  const structured = submission.structured ?? {};
-  const { rent, bhk, area } = parseIntakeFacts(submission.raw_text, structured);
-  const title =
-    (typeof structured.title === "string" && structured.title) ||
-    submission.raw_text.split("\n")[0].slice(0, 140);
-
-  const missingFields: string[] = [];
-  if (!title) missingFields.push("title");
-  if (rent == null) missingFields.push("rent");
-  if (bhk == null) missingFields.push("bhk");
-  if (!area) missingFields.push("location");
-
-  const { data: listing, error: listingErr } = await supa
-    .from("listings")
-    .insert({
-      source: submission.source,
-      source_ref: submission.id, // ties the listing back to its submission (idempotent, unique)
-      title,
-      rent,
-      bhk,
-      location: area ? { area } : null,
-      description: submission.raw_text,
-      raw: { structured, source_url: submission.source_url, poster_contact: submission.poster_contact },
-      missing_fields: missingFields,
-      poster_contact: submission.poster_contact ? { raw: submission.poster_contact } : null,
-    })
-    .select("id")
-    .single();
-  if (listingErr) throw listingErr;
-
-  const photos = submission.intake_photos ?? [];
-  if (photos.length > 0) {
-    const { error: photosErr } = await supa.from("listing_photos").insert(
-      photos.map((p) => ({
-        listing_id: listing.id,
-        url: p.url,
-        position: p.position,
-      })),
-    );
-    if (photosErr) throw photosErr;
-  }
-
-  return listing.id as string;
 }
 
 /** Insert a new intake submission. Returns the submission id. */

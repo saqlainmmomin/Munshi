@@ -124,7 +124,15 @@ create table listings (
     furnishing       furnishing,
     location         jsonb,                             -- {area, lat, lng}
     available_from   date,
+    availability_text text,                             -- source wording when available_from can't be exact, e.g. "July or August"
     description      text,
+    amenities        jsonb not null default '[]',        -- normalized tags, e.g. ["lift", "power_backup"]
+    -- null = not mentioned. {"applicable": true, "amount": null} = mentioned, unknown amount.
+    maintenance_details jsonb,
+    brokerage_applicable boolean,                       -- null = not mentioned
+    claims           jsonb not null default '[]',        -- unverified poster claims, e.g. ["1 km from metro"]; never rendered as verified
+    -- per-field confidence/provenance: {"<field>": {"confidence": 0-1, "source": "structured"|"text"|"inferred"}}
+    extraction_meta  jsonb not null default '{}',
     -- provenance & freshness
     raw              jsonb not null default '{}',        -- untouched captured payload
     first_seen_at    timestamptz not null default now(),
@@ -148,7 +156,10 @@ create table listing_photos (
     position    smallint not null default 0,
     -- worker vision output (PRD §7, §11): ranks/explains, never auto-discards
     light_score real,
-    space_score real
+    space_score real,
+    -- explanation for the scores above. match_states.light_assessment/space_assessment
+    -- are copied from here per participant, not independently generated.
+    assessment  text
 );
 create index on listing_photos (listing_id);
 
