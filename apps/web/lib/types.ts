@@ -30,9 +30,35 @@ export interface Listing {
 export interface Participant {
   id: string;
   party_id: string;
+  user_id: string;
   display_name: string;
   role: "creator" | "participant";
   taste_weights: Record<string, number>;
+}
+
+export interface SearchParty {
+  id: string;
+  status: "active" | "closed";
+  budget_target: number;
+  budget_ceiling: number;
+  bhk: number | null;
+  occupancy: number | null;
+  furnishing_pref: Furnishing;
+  move_in_date: string | null;
+  corridor: string | null;
+  locations: unknown[];
+  soft_prefs_text: string | null;
+  soft_pref_tags: string[];
+  created_at: string;
+}
+
+export interface CommuteAnchor {
+  id: string;
+  party_id: string;
+  label: string;
+  location: { lat?: number; lng?: number; address?: string };
+  mode: "two_wheeler" | "auto" | "car" | "transit" | "walk";
+  max_peak_minutes: number;
 }
 
 export interface MatchState {
