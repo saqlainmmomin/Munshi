@@ -66,13 +66,16 @@ create index on commute_anchors (party_id);
 create table participants (
     id            uuid primary key default gen_random_uuid(),
     party_id      uuid not null references search_parties(id) on delete cascade,
+    user_id       uuid not null,                           -- Supabase Auth uid
     display_name  text not null,
     role          party_role not null default 'participant',
     -- learned soft-preference weights; editable & reversible (PRD §3, §11)
     taste_weights jsonb not null default '{}',
-    created_at    timestamptz not null default now()
+    created_at    timestamptz not null default now(),
+    unique (party_id, user_id)
 );
 create index on participants (party_id);
+create index on participants (user_id);
 
 -- ============================================================================
 -- INTAKE SUBMISSIONS  (PRD §8.3–8.4) — app-owned

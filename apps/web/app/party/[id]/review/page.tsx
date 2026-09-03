@@ -1,9 +1,7 @@
-// Daily review loop — the core interaction (PRD §5.2).
-// Finite daily batch (NOT an infinite feed), photo-led cards, keyboard controls,
-// pass (multi-select reason chips) or add-to-shortlist. Ordering is per-participant.
-
-import { getReviewListings } from "@/lib/db";
-import { ReviewCard } from "@/components/ReviewCard";
+import { getReviewListings, getParticipant, getReviewedListingIds } from "@/lib/db";
+import { requireUser } from "@/lib/supabase/auth";
+import { redirect } from "next/navigation";
+import { ReviewQueue } from "./ReviewQueue";
 
 export default async function ReviewPage({
   params,
@@ -11,21 +9,36 @@ export default async function ReviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const user = await requireUser();
 
-  // Reads real listings the worker wrote, via the shared DB (AGENTS.md §3).
+  const participant = await getParticipant(id, user.id);
+  if (!participant) redirect(`/party/${id}/join`);
+
   const listings = await getReviewListings(id);
+  const reviewed = await getReviewedListingIds(participant.id);
+  const unreviewedListings = listings.filter((l) => !reviewed.has(l.id));
 
   return (
     <main>
-      <h1>Today&apos;s batch</h1>
-      <p style={{ color: "var(--muted)" }}>
-        {listings.length} {listings.length === 1 ? "match" : "matches"} that fit your search.
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "1rem" }}>
+        <div>
+          <h1 style={{ margin: 0 }}>Today&apos;s batch</h1>
+          <p style={{ color: "var(--muted)", margin: "0.3rem 0 0" }}>
+            {unreviewedListings.length} {unreviewedListings.length === 1 ? "match" : "matches"} to review
+          </p>
+        </div>
+        <a
+          href={`/party/${id}/shortlist`}
+          style={{ fontSize: "0.9rem", color: "var(--accent)", textDecoration: "none" }}
+        >
+          Shortlist &rarr;
+        </a>
+      </div>
 
-      {listings.length === 0 ? (
-        <p>Nothing new right now. We&apos;ll surface fresh matches as they arrive.</p>
+      {unreviewedListings.length === 0 ? (
+        <p>All caught up. We&apos;ll surface fresh matches as they arrive.</p>
       ) : (
-        listings.map((l) => <ReviewCard key={l.id} listing={l} />)
+        <ReviewQueue listings={unreviewedListings} partyId={id} />
       )}
     </main>
   );
