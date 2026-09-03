@@ -75,13 +75,32 @@ export async function getPendingIntake(): Promise<IntakeSubmission[]> {
   return (data ?? []) as unknown as IntakeSubmission[];
 }
 
-/** Approve or reject an intake submission. */
+/**
+ * Approve or reject an intake submission. Approving creates the `Listing`
+ * the submission feeds into the shared pipeline (PRD §8.4): "public form →
+ * submissions queue → Saqlain approves → Listing in pipeline."
+ */
 export async function reviewIntake(
   id: string,
   decision: "approved" | "rejected",
   notes?: string,
 ) {
-  const { error } = await db()
+  const supa = db();
+
+  if (decision === "approved") {
+    const { data: submission, error: fetchErr } = await supa
+      .from("intake_submissions")
+      .select("*, intake_photos ( url, position )")
+      .eq("id", id)
+      .single();
+    if (fetchErr) throw fetchErr;
+
+    await createListingFromIntake(
+      submission as unknown as IntakeSubmission,
+    );
+  }
+
+  const { error } = await supa
     .from("intake_submissions")
     .update({
       status: decision,
@@ -90,6 +109,56 @@ export async function reviewIntake(
     })
     .eq("id", id);
   if (error) throw error;
+}
+
+/** Turn an approved intake submission into a `listings` row + its photos. */
+async function createListingFromIntake(submission: IntakeSubmission) {
+  const supa = db();
+  const structured = submission.structured ?? {};
+  const rent = typeof structured.rent === "number" ? structured.rent : null;
+  const bhk = typeof structured.bhk === "number" ? structured.bhk : null;
+  const area = typeof structured.area === "string" ? structured.area : null;
+  const title =
+    (typeof structured.title === "string" && structured.title) ||
+    submission.raw_text.split("\n")[0].slice(0, 140);
+
+  const missingFields: string[] = [];
+  if (!title) missingFields.push("title");
+  if (rent == null) missingFields.push("rent");
+  if (bhk == null) missingFields.push("bhk");
+  if (!area) missingFields.push("location");
+
+  const { data: listing, error: listingErr } = await supa
+    .from("listings")
+    .insert({
+      source: submission.source,
+      source_ref: submission.id, // ties the listing back to its submission (idempotent, unique)
+      title,
+      rent,
+      bhk,
+      location: area ? { area } : null,
+      description: submission.raw_text,
+      raw: { structured, source_url: submission.source_url, poster_contact: submission.poster_contact },
+      missing_fields: missingFields,
+      poster_contact: submission.poster_contact ? { raw: submission.poster_contact } : null,
+    })
+    .select("id")
+    .single();
+  if (listingErr) throw listingErr;
+
+  const photos = submission.intake_photos ?? [];
+  if (photos.length > 0) {
+    const { error: photosErr } = await supa.from("listing_photos").insert(
+      photos.map((p) => ({
+        listing_id: listing.id,
+        url: p.url,
+        position: p.position,
+      })),
+    );
+    if (photosErr) throw photosErr;
+  }
+
+  return listing.id as string;
 }
 
 /** Insert a new intake submission. Returns the submission id. */
