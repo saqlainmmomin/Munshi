@@ -127,6 +127,8 @@ The unit of use is a **search party** — one or more people searching together.
 
 ## 6. Interface and design direction
 
+**Visual-design reference (binding, chosen 2026-09-04):** [`design/explorations/volcanic-graphic.html`](../design/explorations/volcanic-graphic.html) — the "Volcanic Graphic" direction, picked by Saqlain after a multi-round exploration (see [`tasks/handoffs/2026-09-03-design-exploration.md`](../tasks/handoffs/2026-09-03-design-exploration.md) for the full history and rejected alternatives). Going forward, UI work should follow its system: warm limestone/pumice canvas (`#e2e2df`/`#f7f6f2`), ember-orange (`#fc5000`) as the sole aggressive accent with violet (`#524ae9`) as a secondary, ultrabold condensed display type (Oswald) paired with DM Sans body copy, flat/shadowless surfaces with 40px card radii and full-pill controls, a duotone-halftone treatment for hero photography (not abstract gradients — that direction was explicitly tried and rejected), and restrained, purposeful motion (Ken Burns pans, staggered entrances, magnetic-pull buttons) rather than decorative animation. Treat the mock as the reference to match, not just inspiration — update it (two-pass rule still applies) rather than diverging from it silently.
+
 Continues the earlier **Luma** prototype direction (`CONVERSATION.md` §7, §12):
 
 - **Photo-led review cards.**

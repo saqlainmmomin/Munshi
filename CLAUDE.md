@@ -14,6 +14,7 @@ Claude owns the **web app + schema authorship**. You build `apps/web/`, author `
 3. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — technical shape.
 4. [db/schema.sql](db/schema.sql) — the contract you author.
 5. `tasks/handoffs/<task>.md` — if handed one.
+6. [design/explorations/volcanic-graphic.html](design/explorations/volcanic-graphic.html) — the approved visual-design reference (PRD §6). Match its palette, type, and motion language when building or restyling UI.
 
 ## Your boundaries
 
