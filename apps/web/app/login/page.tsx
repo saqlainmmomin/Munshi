@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { useSearchParams, useRouter } from "next/navigation";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"magic" | "password">("magic");
@@ -145,5 +145,16 @@ export default function LoginPage() {
         {mode === "magic" ? "Use password instead" : "Use magic link instead"}
       </button>
     </main>
+  );
+}
+
+// useSearchParams() opts the tree into client-side rendering, so the export has
+// to sit behind a Suspense boundary or the production build fails to prerender
+// /login (missing-suspense-with-csr-bailout).
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main><h1>Sign in to Munshi</h1></main>}>
+      <LoginForm />
+    </Suspense>
   );
 }
